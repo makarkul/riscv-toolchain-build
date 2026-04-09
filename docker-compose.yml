@@ -1,0 +1,21 @@
+services:
+  toolchain-builder:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        HOST_UID: ${HOST_UID:-1000}
+        HOST_GID: ${HOST_GID:-1000}
+    image: riscv-toolchain-builder:ubuntu24
+    volumes:
+      - ${OUTPUT_DIR:-./toolchain-output}:/riscv_toolchain
+      # Source submodules (bind-mounted from host)
+      - ./sources/riscv-gnu-toolchain:/src/riscv-gnu-toolchain:ro
+      - ./sources/gcc:/src/gcc:ro
+      - ./sources/binutils:/src/binutils:ro
+      - ./sources/newlib:/src/newlib:ro
+      - ./sources/gdb:/src/gdb:ro
+      - ./sources/spike:/src/spike:ro
+    environment:
+      HOST_UID: ${HOST_UID:-1000}
+      HOST_GID: ${HOST_GID:-1000}

@@ -1,0 +1,35 @@
+toolchain_config_options:
+    path_to_download: /riscv_install/riscv-gnu-toolchain
+    parallel_jobs: 47
+    path_to_install: /riscv_toolchain
+    with_arch: rv64im_zicsr_zifencei
+    with_abi: lp64
+    with_cmodel: medany
+    misc: 
+        --with-multilib-generator="rv32imfc_zba_zbb_zbc_zbpbo_zbs_zicsr_zifencei_zpn_zpsf-ilp32f--;rv32imc_zba_zbb_zbc_zbpbo_zbs_zicsr_zifencei_zpn_zpsf-ilp32--;rv32imf_zba_zbb_zbc_zbpbo_zbs_zicsr_zifencei_zpn_zpsf-ilp32f--;rv32im_zba_zbb_zbc_zbpbo_zbs_zicsr_zifencei_zpn_zpsf-ilp32--;rv64im_zba_zbb_zbc_zbpbo_zbs_zicsr_zifencei_zpn_zpsf-lp64--;rv64imf_zba_zbb_zbc_zbpbo_zbs_zicsr_zifencei_zpn_zpsf-lp64f--;rv64imc_zba_zbb_zbc_zbpbo_zbs_zicsr_zifencei_zpn_zpsf-lp64--;rv64imfc_zba_zbb_zbc_zbpbo_zbs_zicsr_zifencei_zpn_zpsf-lp64f--;rv64i_zicsr_zifencei-lp64--"
+#name of submodules should be same as 'riscv-gnu-toolchain/.gitmodules'
+submodules:
+    gcc:
+        url: https://gcc.gnu.org/git/gcc.git
+        path: /gcc
+        branch: releases/gcc-13
+        tags: releases/gcc-13.4.0
+    binutils:
+        url: https://sourceware.org/git/binutils-gdb.git
+        path: /binutils
+        branch: binutils-2_40-branch
+        commit-id: e05406c548867d6467d47564f8f9d7cd338532a4
+    newlib:
+        url: https://sourceware.org/git/newlib-cygwin.git
+        path: /newlib
+        branch: master
+        tags: newlib-4.5.0
+    gdb:
+        url: https://sourceware.org/git/binutils-gdb.git
+        path: /riscv-gdb
+        branch: gdb-16-branch
+        tags: gdb-16.3-release
+    spike:
+        url: https://github.com/incoresemi/riscv-isa-sim.git
+        path: /spike
+        branch: incoresemi
