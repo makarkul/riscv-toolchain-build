@@ -1,0 +1,18 @@
+[submodule "riscv-gnu-toolchain"]
+	path = sources/riscv-gnu-toolchain
+	url = https://github.com/riscv-software-src/riscv-gnu-toolchain.git
+[submodule "gcc"]
+	path = sources/gcc
+	url = https://gcc.gnu.org/git/gcc.git
+[submodule "binutils"]
+	path = sources/binutils
+	url = https://sourceware.org/git/binutils-gdb.git
+[submodule "newlib"]
+	path = sources/newlib
+	url = https://sourceware.org/git/newlib-cygwin.git
+[submodule "gdb"]
+	path = sources/gdb
+	url = https://sourceware.org/git/binutils-gdb.git
+[submodule "spike"]
+	path = sources/spike
+	url = https://github.com/incoresemi/riscv-isa-sim.git
