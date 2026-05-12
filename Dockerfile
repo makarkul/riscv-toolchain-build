@@ -1,14 +1,17 @@
-FROM ubuntu:24.04
+FROM ubuntu:22.04
 
 ENV DEBIAN_FRONTEND=noninteractive
 
-# Build dependencies from riscv-gnu-toolchain README (Ubuntu)
+# Base image is ubuntu:22.04 (jammy, glibc 2.35) so the toolchain host binaries
+# we produce reference at most GLIBC_2.35 — the resulting .deb is then
+# installable on both Ubuntu 22.04 (jammy) and 24.04 (noble, glibc 2.39).
 RUN apt-get update && apt-get install -y \
     autoconf \
     automake \
     autotools-dev \
     curl \
     python3 \
+    python3-dev \
     python3-pip \
     python3-tomli \
     libmpc-dev \
@@ -32,18 +35,21 @@ RUN apt-get update && apt-get install -y \
     libslirp-dev \
     libncurses-dev \
     python-is-python3 \
+    xz-utils \
+    dpkg-dev \
+    file \
+    rsync \
     && rm -rf /var/lib/apt/lists/*
 
-# Build args — used to fix file ownership on the mounted output volume
 ARG HOST_UID=1000
 ARG HOST_GID=1000
 ENV HOST_UID=${HOST_UID}
 ENV HOST_GID=${HOST_GID}
 
 COPY build-toolchain.sh /usr/local/bin/build-toolchain.sh
-RUN chmod +x /usr/local/bin/build-toolchain.sh
+COPY package-deb.sh     /usr/local/bin/package-deb.sh
+RUN chmod +x /usr/local/bin/build-toolchain.sh /usr/local/bin/package-deb.sh
 
-# Wrapper: run the build then fix ownership so the host user owns the output
 COPY entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
 

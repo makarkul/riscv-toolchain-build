@@ -6,10 +6,18 @@ services:
       args:
         HOST_UID: ${HOST_UID:-1000}
         HOST_GID: ${HOST_GID:-1000}
-    image: riscv-toolchain-builder:ubuntu24
+    image: riscv-toolchain-builder:jammy
     volumes:
-      - ${OUTPUT_DIR:-./toolchain-output}:/riscv_toolchain
-      # Source submodules (bind-mounted from host)
+      # Final install prefix — the toolchain payload that ends up inside the .deb
+      - ${OUTPUT_DIR:-./toolchain-output}:/opt/riscv-toolchain
+      # Working build dir — large, on a docker-managed named volume to avoid
+      # exhausting tmpfs / the host root filesystem.
+      - build-workspace:/build
+      # .deb output (.deb + buildlogs) returned to the host
+      - ${DIST_DIR:-./dist}:/dist
+      # Patches and sources, mounted read-only — the build script copies them
+      # into /build for writability.
+      - ./patches:/src/patches:ro
       - ./sources/riscv-gnu-toolchain:/src/riscv-gnu-toolchain:ro
       - ./sources/gcc:/src/gcc:ro
       - ./sources/binutils:/src/binutils:ro
@@ -19,3 +27,7 @@ services:
     environment:
       HOST_UID: ${HOST_UID:-1000}
       HOST_GID: ${HOST_GID:-1000}
+      PKG_VERSION: ${PKG_VERSION:-13.4.0-1}
+
+volumes:
+  build-workspace:
