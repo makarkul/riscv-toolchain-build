@@ -34,6 +34,9 @@ RUN apt-get update && apt-get install -y \
     libglib2.0-dev \
     libslirp-dev \
     libncurses-dev \
+    device-tree-compiler \
+    libboost-regex-dev \
+    libboost-system-dev \
     python-is-python3 \
     xz-utils \
     dpkg-dev \

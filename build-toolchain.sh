@@ -126,6 +126,21 @@ for mod in "${SUBMODULES[@]}"; do
 done
 ln -sf "$SRCDIR/gdb" "$WORK/riscv-gdb"
 
+# The riscv-gnu-toolchain Makefile has targets like $(srcdir)/gcc/.git that
+# trigger `git submodule init/update`.  Since we copied the sources without
+# .git metadata, we need to:
+#   1. Init a bare git repo in $WORK so `git rev-parse --git-dir` succeeds.
+#   2. Create .git marker files inside each submodule directory so make
+#      considers those targets up-to-date and skips the git operations.
+echo "==> Creating git scaffolding to satisfy Makefile submodule targets ..."
+git config --global --add safe.directory "$WORK"
+git config --global user.email "build@localhost"
+git config --global user.name "Builder"
+(cd "$WORK" && git init -q && git commit --allow-empty -m "scaffold" -q)
+for mod in "${SUBMODULES[@]}"; do
+    touch "$SRCDIR/$mod/.git"
+done
+
 cd "$WORK"
 
 # ---------------------------------------------------------------------------
