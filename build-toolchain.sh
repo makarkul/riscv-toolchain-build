@@ -144,13 +144,34 @@ done
 cd "$WORK"
 
 # ---------------------------------------------------------------------------
+# Force static linking of host helper libs
+# ---------------------------------------------------------------------------
+# GCC's internal build system (cc1, cc1plus, lto1) ignores LDFLAGS_FOR_HOST,
+# so passing -Bstatic flags via make variables is not enough.  The reliable
+# fix inside a disposable Docker container is to remove the .so symlinks for
+# libmpc, libmpfr, libgmp, and libboost so the linker can only find the .a
+# static archives.  This ensures ALL host binaries — including cc1, spike,
+# etc. — are statically linked against these libs and the resulting .deb is
+# portable across distros.
+echo ""
+echo "==> Removing shared-lib symlinks to force static linking ..."
+# For libmpc/libmpfr/libgmp: only remove the unversioned .so linker symlink.
+# The versioned .so.N files must stay — system tools like `expr` link against
+# libgmp.so.10 at runtime.  Removing just the unversioned symlink forces
+# -lmpc / -lmpfr / -lgmp to resolve to the .a static archive instead.
+for lib in libmpc libmpfr libgmp; do
+    rm -fv /usr/lib/x86_64-linux-gnu/${lib}.so 2>/dev/null || true
+done
+# For libboost: no system tools depend on boost, so remove all .so files
+# (including versioned ones) to force spike to link statically.
+for lib in libboost_regex libboost_system; do
+    rm -fv /usr/lib/x86_64-linux-gnu/${lib}.so* 2>/dev/null || true
+done
+
+# ---------------------------------------------------------------------------
 # Configure
 # ---------------------------------------------------------------------------
-# Static-link host helper libs so the cross binaries don't depend on
-# distro-specific libstdc++ / libgmp / libmpc / libmpfr. glibc stays dynamic
-# (full-static glibc breaks gcc's dlopen-based plugins and NSS).
-HOST_STATIC_LDFLAGS="-static-libgcc -static-libstdc++ -Wl,-Bstatic -lmpc -lmpfr -lgmp -Wl,-Bdynamic"
-HOST_LIBSTDCXX='-static-libstdc++ -static-libgcc -Wl,-Bstatic -lstdc++ -Wl,-Bdynamic'
+HOST_STATIC_LDFLAGS="-static-libgcc -static-libstdc++"
 
 echo ""
 echo "==> Configuring ..."
@@ -161,30 +182,28 @@ mkdir -p "$PREFIX"
     --with-arch=rv64im_zicsr_zifencei \
     --with-abi=lp64 \
     --with-cmodel=medany \
-    --with-host-libstdcxx="$HOST_LIBSTDCXX" \
     --with-multilib-generator="$MULTILIB_GENERATOR"
 
 # ---------------------------------------------------------------------------
 # Build
 # ---------------------------------------------------------------------------
+# The `newlib` target builds gcc, binutils, newlib AND gdb (Makefile.in line
+# 179: `newlib: stamps/build-gdb-newlib`).  Pass GDB_TARGET_FLAGS_EXTRA here
+# so gdb is built without python — python .so versions differ between
+# jammy and noble, making the binary non-portable.
 echo ""
-echo "==> Building newlib + multilibs with -j$JOBS ..."
+echo "==> Building newlib + multilibs + gdb with -j$JOBS ..."
 make newlib -j"$JOBS" \
     LDFLAGS_FOR_HOST="$HOST_STATIC_LDFLAGS" \
-    LDFLAGS_FOR_BUILD="$HOST_STATIC_LDFLAGS"
-
-# gdb (cross gdb for riscv targets) — the framework exposes a `gdb` target on
-# recent revisions; if not present, skip with a warning.
-if grep -q '^gdb:' Makefile 2>/dev/null; then
-    echo ""
-    echo "==> Building gdb with -j$JOBS ..."
-    make gdb -j"$JOBS" \
-        LDFLAGS_FOR_HOST="$HOST_STATIC_LDFLAGS" \
-        LDFLAGS_FOR_BUILD="$HOST_STATIC_LDFLAGS" || \
-        echo "WARN: gdb build failed — continuing without gdb"
-fi
+    LDFLAGS_FOR_BUILD="$HOST_STATIC_LDFLAGS" \
+    GDB_TARGET_FLAGS_EXTRA="--without-python"
 
 # spike (riscv-isa-sim).
+# Remove any stale spike binary from a previous build (the PREFIX is a
+# persistent volume mount) so we always rebuild with current link flags.
+rm -f "$PREFIX/bin/spike" "$PREFIX/bin/elf2hex" "$PREFIX/bin/spike-dasm" \
+      "$PREFIX/bin/spike-log-parser" "$PREFIX/bin/xspike" "$PREFIX/bin/termios-xspike"
+
 if grep -q '^spike:' Makefile 2>/dev/null; then
     echo ""
     echo "==> Building spike via framework target ..."
@@ -203,8 +222,16 @@ if [[ ! -x "$PREFIX/bin/spike" ]]; then
             "$SRCDIR/spike/configure" --prefix="$PREFIX" \
                 CXXFLAGS="-O2 -static-libstdc++ -static-libgcc" \
                 LDFLAGS="-static-libstdc++ -static-libgcc"
-            make -j"$JOBS"
-            make install
+            # The shared lib (libriscv.so) fails when boost is only available
+            # as a non-PIC static archive.  Build and install what we can;
+            # the spike/elf2hex/spike-dasm executables link fine.
+            make -j"$JOBS" || true
+            make install || true
+            # If make install didn't place the binaries (because make failed
+            # before completing), install them manually.
+            for bin in spike elf2hex spike-log-parser xspike termios-xspike spike-dasm; do
+                [[ -x "$SPIKE_BUILD/$bin" ]] && cp -f "$SPIKE_BUILD/$bin" "$PREFIX/bin/"
+            done
         ) || echo "WARN: spike configure/build failed"
     elif [[ -f "$SRCDIR/spike/CMakeLists.txt" ]]; then
         (

@@ -71,7 +71,7 @@ Priority: optional
 Architecture: ${ARCH}
 Installed-Size: ${INSTALLED_SIZE}
 Maintainer: ${MAINTAINER}
-Depends: libc6 (>= 2.34), libexpat1, zlib1g, libtinfo6, libncurses6, libpython3.10 | libpython3.11 | libpython3.12
+Depends: libc6 (>= 2.34), libexpat1, zlib1g, libtinfo6, libncurses6
 Recommends: make, gdb-multiarch
 Description: RISC-V GNU cross-toolchain with InCore P-extension support
  Full multilib RISC-V GNU toolchain bundling:
