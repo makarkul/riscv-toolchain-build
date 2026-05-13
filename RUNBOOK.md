@@ -82,7 +82,32 @@ docker run --rm -it -v "$PWD/dist:/d" ubuntu:24.04 bash -c '
 '
 ```
 
-## Installing from Gemfury (consumer side)
+## Installing the toolchain
+
+### From GitLab Package Registry
+
+The `.deb` is hosted on the GitLab Generic Package Registry.
+
+```bash
+# Download the .deb (replace <TOKEN> with a GitLab personal access token)
+curl --header "PRIVATE-TOKEN: <TOKEN>" \
+  -o riscv-toolchain_13.4.0-1_amd64.deb \
+  "https://gitlab.vayavyalabs.com:8000/api/v4/projects/1312/packages/generic/riscv-toolchain/13.4.0-1/riscv-toolchain_13.4.0-1_amd64.deb"
+
+# Install (works on both Ubuntu 22.04 jammy and 24.04 noble)
+sudo apt install ./riscv-toolchain_13.4.0-1_amd64.deb
+
+# The toolchain is installed to /opt/riscv-toolchain.
+# A /etc/profile.d snippet adds it to PATH for new shells, or manually:
+export PATH=/opt/riscv-toolchain/bin:$PATH
+```
+
+The package is also browsable at:
+```
+https://gitlab.vayavyalabs.com:8000/sampigesemi/riscv-toolchain-build/-/packages
+```
+
+### From Gemfury (legacy)
 
 ```bash
 # As root on jammy or noble:
@@ -91,6 +116,17 @@ echo 'deb [trusted=yes] https://apt.fury.io/sampigesemi/ /' \
 apt-get update
 apt-get install -y riscv-toolchain
 export PATH=/opt/riscv-toolchain/bin:$PATH
+```
+
+### Uploading a new version to GitLab
+
+```bash
+export GITLAB_TOKEN='<your-gitlab-personal-access-token>'
+
+# Upload the .deb
+curl --header "PRIVATE-TOKEN: $GITLAB_TOKEN" \
+  --upload-file dist/riscv-toolchain_<VERSION>_amd64.deb \
+  "https://gitlab.vayavyalabs.com:8000/api/v4/projects/1312/packages/generic/riscv-toolchain/<VERSION>/riscv-toolchain_<VERSION>_amd64.deb"
 ```
 
 ## Troubleshooting
